@@ -1,0 +1,7 @@
+[Nemo Action]
+Name=Ordnerfarbe ändern…
+Comment=Öffnet eine GTK4-Farbpalette für diesen Ordner
+Exec=folder_color_picker.py %F
+Icon-Name=preferences-desktop-theme
+Selection=s
+Extensions=dir;
