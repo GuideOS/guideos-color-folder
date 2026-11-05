@@ -14,7 +14,7 @@
 ---
 ## 🔧 Installation
 
-#### Download des `.deb` Packages, von der **[Releases](https://github.com/Nightworker-DE/guideos-color-folder/releases)** Section in diesem Repository
+#### Download des `.deb` Packages, von der **[Releases](https://github.com/GuideOS/guideos-color-folder/releases)** Section in diesem Repository
 
 Installiere das generierte Paket mit `apt`:
 
