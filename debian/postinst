@@ -1,0 +1,23 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    configure)
+        # Prüfen, ob das Download-Skript existiert und ausführbar ist
+        if [ -x /usr/share/guideos-color-folder/download_mint_icons.sh ]; then
+            echo "Starte Download der Mint-Y Icons..."
+            # || true verhindert, dass die Paketinstallation bei fehlender Verbindung fehlschlägt
+            /usr/share/guideos-color-folder/download_mint_icons.sh || true
+        fi
+    ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+    ;;
+
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
+
+exit 0

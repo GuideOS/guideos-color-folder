@@ -7,7 +7,6 @@ import gi
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk, Gdk, Gio
 
-# 16 Standardfarben (kompatibel mit Papirus & Mint-Y)
 PALETTE = [
     ("Blue", "#42a5f5", "blue"),
     ("Blue-Grey", "#607d8b", "bluegrey"),
@@ -28,11 +27,11 @@ PALETTE = [
 ]
 
 class ColorPickerWindow(Gtk.ApplicationWindow):
-    def __init__(self, app, target_path):
-        super().__init__(application=app, title="Ordnerfarbe")
+    def __init__(self, app, target_path, all_targets):
+        super().__init__(application=app, title="Ordnerfarbe (Mehrfachauswahl)")
+        self.target_paths = all_targets
         self.target_path = os.path.abspath(target_path)
 
-        # Kompakte Fenstergröße für 16 Kacheln (4x4)
         self.set_default_size(240, 210)
         self.set_resizable(False)
 
@@ -43,13 +42,13 @@ class ColorPickerWindow(Gtk.ApplicationWindow):
         box.set_margin_end(10)
         self.set_child(box)
 
-        # Ordnername oben anzeigen
+        # Zeigt den Namen des ersten Ordners und optional die Anzahl an
         folder_name = os.path.basename(self.target_path)
-        label = Gtk.Label(label=f"<b>{folder_name}</b>")
+        count_info = f" (+ {len(self.target_paths) - 1} weitere)" if len(self.target_paths) > 1 else ""
+        label = Gtk.Label(label=f"<b>{folder_name}{count_info}</b>")
         label.set_use_markup(True)
         box.append(label)
 
-        # Farb-Grid (4 Spalten x 4 Zeilen)
         grid = Gtk.Grid()
         grid.set_column_spacing(6)
         grid.set_row_spacing(6)
@@ -57,11 +56,9 @@ class ColorPickerWindow(Gtk.ApplicationWindow):
         box.append(grid)
 
         cols = 4
-        for idx, (name, hex_code, color_key) in enumerate(PALETTE):
+        for idx, (name, hex_code, icon_key) in enumerate(PALETTE):
             btn = Gtk.Button()
             btn.set_tooltip_text(name)
-
-            # Rechteckige Kacheln (34x24 Pixel)
             btn.set_size_request(34, 24)
 
             css_provider = Gtk.CssProvider()
@@ -80,10 +77,9 @@ class ColorPickerWindow(Gtk.ApplicationWindow):
             )
             btn.get_style_context().add_provider(css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
-            btn.connect("clicked", self.on_color_selected, color_key)
+            btn.connect("clicked", self.on_color_selected, icon_key)
             grid.attach(btn, idx % cols, idx // cols, 1, 1)
 
-        # Button zum Zurücksetzen auf die Standardfarbe
         reset_btn = Gtk.Button(label="Standard zurücksetzen")
         reset_btn.set_margin_top(4)
         reset_btn.connect("clicked", self.on_reset_clicked)
@@ -91,38 +87,60 @@ class ColorPickerWindow(Gtk.ApplicationWindow):
 
     def apply_icon(self, icon_name):
         if icon_name:
-            # Eventuell gesetztes festes Bild-Icon löschen und Icon-Namen setzen
-            subprocess.run(["gio", "set", "-t", "unset", self.target_path, "metadata::custom-icon"], check=False)
-            subprocess.run(["gio", "set", "-t", "string", self.target_path, "metadata::custom-icon-name", icon_name], check=False)
-        else:
-            # Metadaten zurücksetzen
-            subprocess.run(["gio", "set", "-t", "unset", self.target_path, "metadata::custom-icon-name"], check=False)
-            subprocess.run(["gio", "set", "-t", "unset", self.target_path, "metadata::custom-icon"], check=False)
+            icon_path = None
+            base_paths = [
+                os.path.expanduser("~/.local/share/icons/Papirus"),
+                "/usr/share/icons/Papirus",
+                os.path.expanduser("~/.local/share/icons/papirus-icon-theme"),
+                "/usr/share/icons/papirus-icon-theme"
+            ]
 
-        # Nemo-Aktualisierung auslösen
-        subprocess.run(["touch", self.target_path], check=False)
+            for base in base_paths:
+                candidate = os.path.join(base, "64x64", "places", f"{icon_name}.svg")
+                if os.path.exists(candidate):
+                    icon_path = candidate
+                    break
+                candidate_alt = os.path.join(base, "48x48", "places", f"{icon_name}.svg")
+                if os.path.exists(candidate_alt):
+                    icon_path = candidate_alt
+                    break
+
+            # Schleife für alle ausgewählten Ordner
+            for path in self.target_paths:
+                if icon_path:
+                    subprocess.run(["gio", "set", "-t", "string", path, "metadata::custom-icon", f"file://{icon_path}"], check=False)
+                    subprocess.run(["gio", "set", "-t", "unset", path, "metadata::custom-icon-name"], check=False)
+                else:
+                    subprocess.run(["gio", "set", "-t", "string", path, "metadata::custom-icon-name", icon_name], check=False)
+                subprocess.run(["touch", path], check=False)
+        else:
+            for path in self.target_paths:
+                subprocess.run(["gio", "set", "-t", "unset", path, "metadata::custom-icon-name"], check=False)
+                subprocess.run(["gio", "set", "-t", "unset", path, "metadata::custom-icon"], check=False)
+                subprocess.run(["touch", path], check=False)
+
         self.close()
 
-    def on_color_selected(self, button, color_key):
-        icon_name = f"folder-{color_key}"
-        self.apply_icon(icon_name)
+    def on_color_selected(self, button, icon_key):
+        full_icon_name = f"folder-{icon_key}"
+        self.apply_icon(full_icon_name)
 
     def on_reset_clicked(self, button):
         self.apply_icon(None)
 
 class ColorPickerApp(Gtk.Application):
-    def __init__(self, target_path):
+    def __init__(self, target_paths):
         super().__init__(application_id="org.nemo.foldercolorpicker")
-        self.target_path = target_path
+        self.target_paths = target_paths
 
     def do_activate(self):
-        win = ColorPickerWindow(self, self.target_path)
+        win = ColorPickerWindow(self, self.target_paths[0], self.target_paths)
         win.present()
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Fehler: Kein Pfad übergeben.")
+        print("Fehler: Keine Pfade übergeben.")
         sys.exit(1)
 
-    app = ColorPickerApp(sys.argv[1])
+    app = ColorPickerApp(sys.argv[1:])
     app.run(None)
