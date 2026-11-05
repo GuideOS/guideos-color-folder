@@ -1,0 +1,26 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    purge|remove)
+        echo "Entferne dynamisch heruntergeladene Mint-Y Icons..."
+
+        # Alle Mint-Y Icon-Ordner entfernen, die durch das Skript geladen wurden
+        rm -rf /usr/share/icons/Mint-Y*
+
+        # Icon-Caches aktualisieren, damit das System die Entfernungen registriert
+        if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+            gtk-update-icon-cache -f -q /usr/share/icons/hicolor 2>/dev/null || true
+        fi
+    ;;
+
+    upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+    ;;
+
+    *)
+        echo "postrm called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
+
+exit 0
