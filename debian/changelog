@@ -1,3 +1,14 @@
+guideos-color-folder (1.0.3) unstable; urgency=medium
+
+  * download_mint_icons.sh: Icon-Pfad im Archiv korrigiert (usr/share/icons).
+  * download_mint_icons.sh: apt-get-Aufruf entfernt (nicht in postinst erlaubt,
+    curl ist bereits in Depends).
+  * download_mint_icons.sh: Temporäres Verzeichnis wird immer aufgeräumt.
+  * debian/rules: download_mint_icons.sh wird ausführbar installiert, sonst
+    überspringt die postinst den Download.
+
+ -- Nightworker <karnap.07@freenet.de>  Fri, 06 Nov 2026 12:00:00 +0100
+
 guideos-color-folder (1.0.2) unstable; urgency=medium
 
   * Initial release.

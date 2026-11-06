@@ -7,5 +7,5 @@ Standards-Version: 4.7.0
 
 Package: guideos-color-folder
 Architecture: all
-Depends: python3, python3-gi, gir1.2-gtk-4.0, nemo
+Depends: python3, python3-gi, gir1.2-gtk-4.0, nemo, curl
 Description: Nemo Action zum Ändern der Ordner-Farben

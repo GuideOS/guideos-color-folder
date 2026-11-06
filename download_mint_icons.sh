@@ -4,6 +4,7 @@ set -e
 # Pfad zu den systemweiten Icons
 TARGET_DIR="/usr/share/icons"
 TEMP_DIR=$(mktemp -d)
+trap 'rm -rf "$TEMP_DIR"' EXIT
 
 # Prüfen, ob das Skript mit sudo/Root-Rechten ausgeführt wird
 if [ "$EUID" -ne 0 ]; then
@@ -15,10 +16,10 @@ echo "=========================================="
 echo " Mint-Y Icons Herunterladen & Installieren"
 echo "=========================================="
 
-# 1. Abhängigkeiten prüfen (curl, tar, git)
-if ! command -v curl &> /dev/null; then
-    echo "curl wird benötigt. Installiere..."
-    apt-get update && apt-get install -y curl
+# curl ist Paketabhängigkeit; apt darf in der postinst nicht aufgerufen werden (dpkg-Lock)
+if ! command -v curl > /dev/null 2>&1; then
+    echo "Fehler: curl fehlt." >&2
+    exit 1
 fi
 
 # 2. Linux Mint Icon-Repository als ZIP/Tarball herunterladen
@@ -34,7 +35,7 @@ tar -xzf "$TEMP_DIR/mint-y-icons.tar.gz" -C "$TEMP_DIR"
 echo "[3/4] Kopiere Mint-Y Themes nach $TARGET_DIR..."
 
 # In der Repository-Struktur liegen die Themes unter src/icons oder build-Strukturen
-SRC_ICONS="$TEMP_DIR/mint-y-icons-master/src/icons"
+SRC_ICONS="$TEMP_DIR/mint-y-icons-master/usr/share/icons"
 
 if [ -d "$SRC_ICONS" ]; then
     # Alle Mint-Y Ordner kopieren
@@ -48,7 +49,6 @@ fi
 
 # 5. Aufräumen & Cache aktualisieren
 echo "[4/4] Aktualisiere Icon-Caches..."
-rm -rf "$TEMP_DIR"
 
 for theme in "$TARGET_DIR"/Mint-Y*; do
     if [ -d "$theme" ]; then
